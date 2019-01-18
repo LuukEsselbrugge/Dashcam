@@ -41,6 +41,9 @@ Pair your OBDII device using bluetoothctl before launch
 * Create a new database called Dashcam
 * Import the included sql file into Dashcam
 
+**Extra**
+Create a folder called "recording" in the project root
+
 ## Hardware
 **Components**
 
