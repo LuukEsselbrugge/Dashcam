@@ -4,7 +4,8 @@
 ## What is Dashcam?
 A fully automated Dashcam system written for the Raspberry pi in bash and Python3. It will record trips and upload these to a server when Wifi is available
 
-[Images](https://imgur.com/a/HetpOQ9)
+![Preview](https://i.imgur.com/E8bVDzm.jpg)
+[MoreImages](https://imgur.com/a/HetpOQ9)
 
 **Work in progress**
 
