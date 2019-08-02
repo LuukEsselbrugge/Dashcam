@@ -1,3 +1,4 @@
+
 import serial
 import io
 import time
@@ -39,6 +40,21 @@ s = 0
 mydb.cursor().execute("INSERT INTO Trip (TripID, Date) VALUES (%s,CURRENT_TIMESTAMP)", (TripID,))
 mydb.commit()
 
+def _readline(s):
+    eol = b'\r'
+    leneol = len(eol)
+    line = bytearray()
+    while True:
+        c = s.read(1)
+        if c:
+            line += c
+            if line[-leneol:] == eol:
+                break
+        else:
+            break
+    return bytes(line)
+
+
 def updateGPS(GPSser):
 	global Lat, Lon, gpsdone
 	try:
@@ -54,7 +70,7 @@ def updateGPS(GPSser):
 	return
 
 def updateOBD():
-	global RPM, KMH, CTemp, ATemp, done, s
+	global RPM, KMH, CTemp, ATemp, done, s, TPos
 	try:
 		r = sendCommand('0D')
 		if "error" not in r:
@@ -72,53 +88,41 @@ def updateOBD():
 		if "error" not in r:
 			ATemp = int(r[0],16) - 40
 
+		r = sendCommand('11')
+		if "error" not in r:
+			TPos =  (100 / 255) * int(r[0],16)
 	except Exception as ex:
 		print("Could not connect to OBDII retrying")
 		print(ex)
 	done = 1
 	return
+	
 
 errorCount = 0
 def sendCommand( str ):
 	global s, errorCount
 	pid = str
-	str = '01 ' + str
+	str = '01 ' + str + '1'
 	s.write(str.encode()+'\r\n'.encode())
 	s.flushInput()
-	res = s.readline()
-	print(res)
-	result = re.search('01 '+pid+'\r41 '+pid+' (.*)\r', res.decode())
-	#print(res)
+	res = _readline(s)
+	result = re.search('41 ' + pid+' (.*) ', res.decode())
 	s.reset_input_buffer()
 	try:
 		out = result.group(1).split(' ')
-		errorCount = 0
 		return out
 	except AttributeError:
-		print("Could not parse OBDII retrying")
-		if errorCount > 20:
-			s.close()
-			time.sleep(1)
-			os.system('rfcomm release all')			
-			time.sleep(1)
-			os.system('rfcomm bind 0 00:1D:A5:68:98:8C')
-			time.sleep(2)
-			s = serial.Serial('/dev/rfcomm0', 115200, timeout=0.1)
-			print(s.in_waiting)
-			s.write('ATZ\r\n'.encode())
-			s.flushInput()
-			errorCount = 0
-			print("resetting rfcomm")
-		errorCount+=1
-		print(errorCount)
+		#print("")
 		return ["00","00","00","error"]
-	return ["00","00","00","error"]
+
 
 while 1:
 	try:
-		s = serial.Serial('/dev/rfcomm0', 115200, timeout=0.1)
+		s = serial.Serial('/dev/rfcomm0', 115200, timeout=1)
 		GPSser = serial.Serial('/dev/ttyAMA0', 9600,timeout=0.1)
 		s.write('ATZ\r\n'.encode())
+		time.sleep(2)
+		s.write('ATE0\r\n'.encode())
 		s.flushInput()
 		while 1:
 			
